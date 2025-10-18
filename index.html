@@ -59,6 +59,8 @@
             ]);
             const [inputYoutubeUrl, setInputYoutubeUrl] = useState('');
             const [inputSpreadsheetUrl, setInputSpreadsheetUrl] = useState('');
+            const [timeOffset, setTimeOffset] = useState(0);
+            const [inputTimeOffset, setInputTimeOffset] = useState('0:00');
             const playerRef = useRef(null);
             const intervalRef = useRef(null);
 
