@@ -260,25 +260,6 @@
 
             const activeSegment = getActiveSegment();
 
-            useEffect(() => {
-                if (activeSegment && activeRowRef.current && tableBodyRef.current) {
-                    const row = activeRowRef.current;
-                    const container = tableBodyRef.current;
-                    
-                    const rowTop = row.offsetTop;
-                    const rowHeight = row.offsetHeight;
-                    const containerHeight = container.clientHeight;
-                    
-                    // 行を中央に配置するようにスクロール
-                    const scrollPosition = rowTop - (containerHeight / 2) + (rowHeight / 2);
-                    
-                    container.scrollTo({
-                        top: scrollPosition,
-                        behavior: 'smooth'
-                    });
-                }
-            }, [activeSegment]);
-
             const handleRowClick = (item) => {
                 const adjustedTime = Math.max(0, item.startTime + timeOffset - 20);
                 handleSeek(adjustedTime);
@@ -476,7 +457,7 @@
                                 </div>
                             )}
                             
-                            <div className="flex-1 overflow-auto" ref={tableBodyRef}>
+                            <div className="flex-1 overflow-auto">
                                 <table className="w-full border-collapse">
                                     <thead className="bg-gray-50 sticky top-0">
                                         <tr>
@@ -495,7 +476,6 @@
                                             return (
                                                 <tr
                                                     key={item.id}
-                                                    ref={isActive ? activeRowRef : null}
                                                     onClick={() => handleRowClick(item)}
                                                     className={`cursor-pointer hover:bg-blue-50 ${isActive ? 'bg-green-100' : ''}`}
                                                 >
