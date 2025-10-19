@@ -248,14 +248,19 @@
 
             const getActiveSegment = () => {
                 return spreadsheetData.find(
-                    (item) => currentTime >= item.startTime - 20 && currentTime <= item.endTime
+                    (item) => {
+                        const adjustedStart = item.startTime + timeOffset;
+                        const adjustedEnd = item.endTime + timeOffset;
+                        return currentTime >= adjustedStart - 20 && currentTime <= adjustedEnd;
+                    }
                 );
             };
 
             const activeSegment = getActiveSegment();
 
             const handleRowClick = (item) => {
-                handleSeek(Math.max(0, item.startTime - 20));
+                const adjustedTime = Math.max(0, item.startTime + timeOffset - 20);
+                handleSeek(adjustedTime);
             };
 
             const handleDataChange = (id, field, value) => {
@@ -277,10 +282,24 @@
                 }]);
             };
 
+            const handleTimeOffsetChange = (e) => {
+                setInputTimeOffset(e.target.value);
+            };
+
+            const applyTimeOffset = () => {
+                const seconds = timeToSeconds(inputTimeOffset);
+                setTimeOffset(seconds);
+            };
+
+            const setOffsetFromCurrentTime = () => {
+                setTimeOffset(Math.floor(currentTime));
+                setInputTimeOffset(formatTime(Math.floor(currentTime)));
+            };
+
             return (
                 <div className="flex h-screen bg-gray-100">
                     <div className="w-1/2 p-6 flex flex-col">
-                        <div className="bg-white rounded-lg shadow-lg p-4 flex-1 flex flex-col">
+                        <div className="bg-white rounded-lg shadow-lg p-4 flex-1 flex flex-col overflow-auto">
                             <h2 className="text-xl font-bold mb-4">YouTube動画</h2>
                             
                             {!videoId ? (
@@ -304,12 +323,12 @@
                                     </div>
                                 </div>
                             ) : (
-                                <>
-                                    <div className="relative pb-[56.25%] mb-4">
+                                <div className="space-y-4">
+                                    <div className="relative pb-[56.25%]">
                                         <div id="youtube-player" className="absolute top-0 left-0 w-full h-full rounded-lg overflow-hidden"></div>
                                     </div>
                                     
-                                    <div className="space-y-4">
+                                    <div className="space-y-3">
                                         <div className="flex items-center gap-4">
                                             <button
                                                 onClick={togglePlayPause}
@@ -332,8 +351,8 @@
                                             
                                             <div className="absolute top-0 left-0 w-full h-3">
                                                 {spreadsheetData.map((item) => {
-                                                    const segmentStart = Math.max(0, item.startTime - 20);
-                                                    const segmentEnd = item.endTime;
+                                                    const segmentStart = Math.max(0, item.startTime + timeOffset - 20);
+                                                    const segmentEnd = item.endTime + timeOffset;
                                                     const startPercent = (segmentStart / duration) * 100;
                                                     const widthPercent = ((segmentEnd - segmentStart) / duration) * 100;
                                                     
@@ -357,12 +376,41 @@
                                                     現在再生中: {activeSegment.description}
                                                 </p>
                                                 <p className="text-xs text-green-600">
-                                                    {formatTime(activeSegment.startTime - 20)} → {formatTime(activeSegment.endTime)}
+                                                    {formatTime(activeSegment.startTime + timeOffset - 20)} → {formatTime(activeSegment.endTime + timeOffset)}
                                                 </p>
                                             </div>
                                         )}
+
+                                        <div className="p-3 bg-purple-50 border border-purple-300 rounded-lg">
+                                            <p className="text-sm font-semibold text-purple-800 mb-2">時間オフセット設定</p>
+                                            <p className="text-xs text-gray-600 mb-2">スプレッドシートの0:00を動画の何秒に合わせるか設定</p>
+                                            <div className="flex gap-2 flex-wrap">
+                                                <input
+                                                    type="text"
+                                                    value={inputTimeOffset}
+                                                    onChange={handleTimeOffsetChange}
+                                                    placeholder="0:00"
+                                                    className="flex-1 min-w-[100px] px-3 py-2 border border-gray-300 rounded text-sm"
+                                                />
+                                                <button
+                                                    onClick={applyTimeOffset}
+                                                    className="px-4 py-2 bg-purple-500 text-white rounded text-sm hover:bg-purple-600"
+                                                >
+                                                    適用
+                                                </button>
+                                                <button
+                                                    onClick={setOffsetFromCurrentTime}
+                                                    className="px-4 py-2 bg-purple-500 text-white rounded text-sm hover:bg-purple-600 whitespace-nowrap"
+                                                >
+                                                    現在時刻
+                                                </button>
+                                            </div>
+                                            <p className="text-xs text-purple-600 mt-2">
+                                                現在のオフセット: {formatTime(timeOffset)}
+                                            </p>
+                                        </div>
                                     </div>
-                                </>
+                                </div>
                             )}
                         </div>
                     </div>
@@ -420,7 +468,8 @@
                                     <tbody>
                                         {spreadsheetData.map((item) => {
                                             const isActive = activeSegment?.id === item.id;
-                                            const segmentStart = Math.max(0, item.startTime - 20);
+                                            const segmentStart = Math.max(0, item.startTime + timeOffset - 20);
+                                            const segmentEnd = item.endTime + timeOffset;
                                             
                                             return (
                                                 <tr
@@ -456,7 +505,7 @@
                                                         />
                                                     </td>
                                                     <td className="border border-gray-300 px-3 py-2 text-sm text-gray-600">
-                                                        {formatTime(segmentStart)} - {formatTime(item.endTime)}
+                                                        {formatTime(segmentStart)} - {formatTime(segmentEnd)}
                                                     </td>
                                                 </tr>
                                             );
@@ -469,9 +518,9 @@
                                 <p className="font-semibold mb-1">使い方:</p>
                                 <ul className="list-disc list-inside space-y-1 text-gray-700">
                                     <li>YouTube URLを入力して動画を読み込む</li>
+                                    <li>時間オフセットでスプレッドシートの0:00を動画の任意の時間に合わせる</li>
                                     <li>スプレッドシートのフォーマット: 列A=Phase, 列B=時間(MM:SS), 列C=Action</li>
                                     <li>表の行をクリックすると、その時間の20秒前にジャンプ</li>
-                                    <li>シークバー上の緑色の部分が各シーンの範囲</li>
                                 </ul>
                             </div>
                         </div>
